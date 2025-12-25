@@ -28,43 +28,28 @@ jobs:
         with:
           python-version: '3.11'
 
-      # 4. KLASÖR YAPISINI DÜZELT (EN ÖNEMLİ ADIM)
-      # Eğer main.py bir alt klasördeyse, onu bulup ana dizine taşırız.
-      - name: Fix Directory Structure
+      # 4. YENİ KLASÖR OLUŞTUR VE DOSYALARI TAŞI
+      # Bu adım uygulamanın ismini 'kpss_pro_2026' olarak ayarlar.
+      - name: Setup Project Directory
         run: |
-          echo "Dosyalar aranıyor..."
-          # main.py dosyasını bul
-          MAIN_PATH=$(find . -name "main.py" -print -quit)
+          echo "Proje klasörü hazırlanıyor..."
+          mkdir kpss_pro_2026
           
-          if [ -z "$MAIN_PATH" ]; then
-            echo "HATA: main.py dosyası hiçbir yerde bulunamadı!"
-            ls -R
-            exit 1
-          fi
-
-          echo "main.py bulundu: $MAIN_PATH"
+          # main.py dosyasını bul ve yeni klasöre taşı
+          find . -maxdepth 2 -name "main.py" -exec mv {} kpss_pro_2026/ \;
           
-          # Eğer main.py zaten kök dizinde değilse taşı
-          if [ "$MAIN_PATH" != "./main.py" ]; then
-            echo "Dosyalar ana dizine taşınıyor..."
-            DIR_NAME=$(dirname "$MAIN_PATH")
-            mv "$DIR_NAME"/* .
-            # Boşalan klasörü sil (varsa)
-            rm -rf "$DIR_NAME"
-          fi
-          
-          echo "Dizin yapısı düzenlendi. Listeleniyor:"
-          ls -F
+          # assets klasörünü bul ve taşı (varsa)
+          if [ -d "assets" ]; then mv assets kpss_pro_2026/; fi
+          # Bazen assets büyük harfle olabilir, onu da kontrol et
+          if [ -d "Assets" ]; then mv Assets kpss_pro_2026/assets; fi
 
-      # 5. requirements.txt TEMİZLİĞİ
-      # Flet zaten Android içinde gömülüdür. requirements.txt içinde flet yazarsa çakışma yapar.
-      # Bu yüzden requirements dosyasını boşaltıyoruz.
-      - name: Clean requirements.txt
-        run: |
-          echo "" > requirements.txt
-          echo "Gereksiz paketler temizlendi."
+          # requirements dosyasını taşı (varsa)
+          if [ -f "requirements.txt" ]; then mv requirements.txt kpss_pro_2026/; fi
 
-      # 6. Gerekli Araçları Yükle
+          echo "Dosyalar taşındı. Yeni klasör içeriği:"
+          ls -R kpss_pro_2026
+
+      # 5. Gerekli Araçları Yükle
       - name: Install Build Tools
         run: |
           python -m pip install --upgrade pip
@@ -72,25 +57,28 @@ jobs:
           pip install packaging
           pip install flet
 
-      # 7. Flutter Ortamını Hazırla
+      # 6. Flutter Ortamını Hazırla
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.19.0'
 
-      # 8. Android Lisanslarını Kabul Et
+      # 7. Android Lisanslarını Kabul Et
       - name: Accept Android Licenses
         run: |
           yes | flutter doctor --android-licenses
 
-      # 9. APK Derleme
+      # 8. APK Derleme (Hata veren komutları kaldırdık!)
+      # Artık sadece klasörün içine girip derliyoruz.
       - name: Build APK
         run: |
-          flet build apk . --project-name kpss_pro_2026 --org com.kpssai.app --verbose
+          cd kpss_pro_2026
+          flet build apk --verbose
 
-      # 10. Sonucu Yükle
+      # 9. Sonucu Yükle
+      # APK artık yeni klasörün içinde oluşacak, yolu ona göre güncelledik.
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: kpss-ai-release
-          path: build/apk/app-release.apk
+          path: kpss_pro_2026/build/apk/app-release.apk
