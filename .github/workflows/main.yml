@@ -28,26 +28,33 @@ jobs:
         with:
           python-version: '3.11'
 
-      # 4. YENİ KLASÖR OLUŞTUR VE DOSYALARI TAŞI
-      # Bu adım uygulamanın ismini 'kpss_pro_2026' olarak ayarlar.
+      # 4. YENİ İSİMLE KLASÖR OLUŞTUR VE DOSYALARI TAŞI
+      # İsmi 'kpss_uzman_2026' yapıyoruz ki çakışma olmasın.
       - name: Setup Project Directory
         run: |
           echo "Proje klasörü hazırlanıyor..."
-          mkdir kpss_pro_2026
+          # Eski kalıntıları temizle
+          rm -rf kpss_pro_2026
+          rm -rf kpss_uzman_2026
+          
+          # YENİ İSİMLE KLASÖR AÇ
+          mkdir kpss_uzman_2026
           
           # main.py dosyasını bul ve yeni klasöre taşı
-          find . -maxdepth 2 -name "main.py" -exec mv {} kpss_pro_2026/ \;
+          find . -maxdepth 2 -name "main.py" -exec mv {} kpss_uzman_2026/ \;
           
           # assets klasörünü bul ve taşı (varsa)
-          if [ -d "assets" ]; then mv assets kpss_pro_2026/; fi
-          # Bazen assets büyük harfle olabilir, onu da kontrol et
-          if [ -d "Assets" ]; then mv Assets kpss_pro_2026/assets; fi
+          if [ -d "assets" ]; then mv assets kpss_uzman_2026/; fi
+          if [ -d "Assets" ]; then mv Assets kpss_uzman_2026/assets; fi
+
+          # json dosyalarını bul ve taşı (sorular ve bilgiler)
+          find . -maxdepth 2 -name "*.json" -exec mv {} kpss_uzman_2026/ \;
 
           # requirements dosyasını taşı (varsa)
-          if [ -f "requirements.txt" ]; then mv requirements.txt kpss_pro_2026/; fi
+          if [ -f "requirements.txt" ]; then mv requirements.txt kpss_uzman_2026/; fi
 
           echo "Dosyalar taşındı. Yeni klasör içeriği:"
-          ls -R kpss_pro_2026
+          ls -R kpss_uzman_2026
 
       # 5. Gerekli Araçları Yükle
       - name: Install Build Tools
@@ -68,17 +75,16 @@ jobs:
         run: |
           yes | flutter doctor --android-licenses
 
-      # 8. APK Derleme (Hata veren komutları kaldırdık!)
-      # Artık sadece klasörün içine girip derliyoruz.
+      # 8. APK Derleme (YENİ İSİMLE)
+      # 'yes |' komutuyla otomatik onay veriyoruz.
       - name: Build APK
         run: |
-          cd kpss_pro_2026
-          flet build apk --verbose
+          cd kpss_uzman_2026
+          yes | flet build apk --verbose
 
       # 9. Sonucu Yükle
-      # APK artık yeni klasörün içinde oluşacak, yolu ona göre güncelledik.
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: kpss-ai-release
-          path: kpss_pro_2026/build/apk/app-release.apk
+          name: kpss-uzman-release
+          path: kpss_uzman_2026/build/apk/app-release.apk
